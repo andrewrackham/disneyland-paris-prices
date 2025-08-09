@@ -1,0 +1,122 @@
+﻿AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless data pipeline with SNS alert and static webpage
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 60
+    MemorySize: 256
+    Environment:
+      Variables:
+        PARAMETER_NAMESPACE: "/myapp/config"
+
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-data"
+
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-web"
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  NewDatesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "New Dates Available"
+
+  PriceChangeTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "Price Changes"
+
+  DataUrlParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "${PARAMETER_NAMESPACE}/data_url"
+      Type: String
+      Value: "https://api.disneylandparis.com/prices-calendar/api/v1/prices/package-price-calendar"
+
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: PipelineStateMachine
+      DefinitionUri: statemachine/pipeline.asl.json
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PullDataFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref InterpretDataFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AssemblePayloadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ServeWebpageFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SendAlertFunction
+
+  PullDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/pull_data/
+      Handler: app.lambda_handler
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref DataBucket
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref DataUrlParam
+
+  InterpretDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/interpret_data/
+      Handler: app.lambda_handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - S3WritePolicy:
+            BucketName: !Ref DataBucket
+
+  AssemblePayloadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/assemble_payload/
+      Handler: app.lambda_handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - S3WritePolicy:
+            BucketName: !Ref DataBucket
+
+  ServeWebpageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/serve_webpage/
+      Handler: app.lambda_handler
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref WebBucket
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+
+  SendAlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/send_alert_if_needed/
+      Handler: app.lambda_handler
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NewDatesTopic.TopicName
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+
+Outputs:
+  PipelineStateMachine:
+    Value: !Ref StateMachine
+  NewDatesTopicArn:
+    Value: !Ref NewDatesTopic
+  WebBucketUrl:
+    Value: !GetAtt WebBucket.WebsiteURL
