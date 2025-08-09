@@ -1,0 +1,31 @@
+﻿{
+  "Comment": "Data processing pipeline",
+  "StartAt": "PullData",
+  "States": {
+    "PullData": {
+      "Type": "Task",
+      "Resource": "${PullDataFunction.Arn}",
+      "Next": "InterpretData"
+    },
+    "InterpretData": {
+      "Type": "Task",
+      "Resource": "${InterpretDataFunction.Arn}",
+      "Next": "AssemblePayload"
+    },
+    "AssemblePayload": {
+      "Type": "Task",
+      "Resource": "${AssemblePayloadFunction.Arn}",
+      "Next": "ServeWebpage"
+    },
+    "ServeWebpage": {
+      "Type": "Task",
+      "Resource": "${ServeWebpageFunction.Arn}",
+      "Next": "SendAlertIfNeeded"
+    },
+    "SendAlertIfNeeded": {
+      "Type": "Task",
+      "Resource": "${SendAlertFunction.Arn}",
+      "End": true
+    }
+  }
+}
