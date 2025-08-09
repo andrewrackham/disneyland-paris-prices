@@ -113,6 +113,37 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref DataBucket
 
+
+  PipelineSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(15 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !Ref StateMachine
+          Id: PipelineTrigger
+          RoleArn: !GetAtt EventBridgeToStepFunctionRole.Arn
+
+  EventBridgeToStepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StartExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref StateMachine
+
+
 Outputs:
   PipelineStateMachine:
     Value: !Ref StateMachine
