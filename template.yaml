@@ -113,7 +113,6 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref DataBucket
 
-
   PipelineSchedule:
     Type: AWS::Events::Rule
     Properties:
