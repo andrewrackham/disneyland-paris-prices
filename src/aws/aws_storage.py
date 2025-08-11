@@ -12,6 +12,6 @@ class AwsStorage(BaseStorage):
         self.s3 = boto3.client("s3")
         self.bucket = bucket
 
-    def save_request_response_for(self, when: datetime, content: dict):
-        key = f"{BaseStorage.time_specific_key(when)}-request-response.json"
+    def save(self, key: str, when: datetime, content: dict):
+        key = f"{key}/{BaseStorage.time_specific_key(when)}.json"
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=json.dumps(content))
