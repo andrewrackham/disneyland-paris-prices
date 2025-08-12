@@ -8,11 +8,5 @@ class Orchestrator(Protocol):
     def storage(self) -> BaseStorage:
         pass
 
-    def url(self) -> str:
-        pass
-
-    def payload(self) -> dict:
-        pass
-
     def datetime(self) -> datetime:
         pass

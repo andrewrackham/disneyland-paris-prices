@@ -1,8 +1,9 @@
 ﻿import os
+from datetime import datetime
 
 from aws.aws_storage import AwsStorage
+from aws.config import get_param
 from base_storage import BaseStorage
-from common.config import get_param
 from pull_data.orchestrator import Orchestrator
 from pull_data.payload_builder import PayloadBuilder
 
@@ -19,6 +20,9 @@ class AwsOrchestrator(Orchestrator):
 
     def url(self) -> str:
         return get_param('data_url')
+
+    def datetime(self) -> datetime:
+        return datetime.now()
 
     def payload(self) -> dict:
         return PayloadBuilder.build(
