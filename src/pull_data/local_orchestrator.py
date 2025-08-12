@@ -23,13 +23,22 @@ class LocalOrchestrator(Orchestrator):
 
     def __parse_cli_args(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument('url')
         parser.add_argument('-t', '--run-time', default=None)
-        parser.add_argument('-s', '--start-date', default=PayloadBuilder.DEFAULT_START_DATE)
-        parser.add_argument('-e', '--end-date', default=PayloadBuilder.DEFAULT_END_DATE)
-        parser.add_argument('-a', '--adults', default=PayloadBuilder.DEFAULT_ADULTS)
-        parser.add_argument('-c', '--children', action='append', default=PayloadBuilder.DEFAULT_CHILDREN)
+        parser.add_argument('-u', '--url', default=os.environ['ENDPOINT'])
+        parser.add_argument('-s', '--start-date',
+                            default=os.environ.get('START_DATE') or PayloadBuilder.DEFAULT_START_DATE)
+        parser.add_argument('-e', '--end-date',
+                            default=os.environ.get('END_DATE') or PayloadBuilder.DEFAULT_END_DATE)
+        parser.add_argument('-a', '--adults',
+                            default=os.environ.get('ADULTS') or PayloadBuilder.DEFAULT_ADULTS)
+        parser.add_argument('-c', '--children', action='append', default=None)
         self.__args = parser.parse_args()
+
+        if self.__args.children is None:
+            if 'CHILDREN' in os.environ:
+                self.__args.children = os.environ['CHILDREN'].split(',')
+            else:
+                self.__args.children = PayloadBuilder.DEFAULT_CHILDREN
 
         datetime_string = self.__args.run_time if self.__args.run_time else os.environ["RUN_TIME"]
         self.__datetime = dateutil_parser.parse(datetime_string)
