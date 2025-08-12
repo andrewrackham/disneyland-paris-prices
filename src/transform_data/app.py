@@ -1,4 +1,6 @@
-﻿from common import config
+﻿from datetime import datetime
+
+from common import config
 from transform_data.aws_orchestrator import AwsOrchestrator
 from transform_data.local_orchestrator import LocalOrchestrator
 from transform_data.orchestrator import Orchestrator
@@ -11,21 +13,29 @@ def run_app(orchestrator: Orchestrator) -> None:
     orchestrator.storage().save(config.KEY_TRANSFORMED, orchestrator.datetime(), result)
 
 
-def transform(raw: dict) -> list:
+def transform(raw: dict) -> dict:
     rooms = dict()
     for room_data in raw['rooms']:
         rooms[room_data['roomCode']] = room_data['name']
 
-    result = []
+    result = dict()
     for key, value in raw['dates'].items():
+        date = format_date(key)
         room_code = value['roomType']
-        result.append({
-            'date': key,
+        if date not in result:
+            result[date] = dict()
+
+        result[date][room_code] = {
             'price': value['price'],
-            'room_code': room_code,
             'room_name': rooms[room_code] if room_code in rooms else 'Unknown'
-        })
-    return result
+        }
+
+    return dict(sorted(result.items(), key=lambda item: item[0]))
+
+
+def format_date(date: str) -> str:
+    date_time = datetime.strptime(date, "%d-%m-%Y")
+    return date_time.strftime('%Y-%m-%d')
 
 
 def lambda_handler(event, context):
