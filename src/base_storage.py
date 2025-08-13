@@ -1,5 +1,5 @@
 ﻿from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
 JsonType = Union[dict, list]
 
@@ -12,6 +12,9 @@ class BaseStorage:
         pass
 
     def load(self, key: str, when: datetime) -> JsonType:
+        pass
+
+    def load_latest(self, key: str) -> Optional[JsonType]:
         pass
 
     @staticmethod
